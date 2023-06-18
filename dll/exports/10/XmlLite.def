@@ -1,0 +1,7 @@
+EXPORTS
+    CreateXmlReader=C:/Windows/System32/XmlLite.CreateXmlReader @1
+    CreateXmlReaderInputWithEncodingCodePage=C:/Windows/System32/XmlLite.CreateXmlReaderInputWithEncodingCodePage @2
+    CreateXmlReaderInputWithEncodingName=C:/Windows/System32/XmlLite.CreateXmlReaderInputWithEncodingName @3
+    CreateXmlWriter=C:/Windows/System32/XmlLite.CreateXmlWriter @4
+    CreateXmlWriterOutputWithEncodingCodePage=C:/Windows/System32/XmlLite.CreateXmlWriterOutputWithEncodingCodePage @5
+    CreateXmlWriterOutputWithEncodingName=C:/Windows/System32/XmlLite.CreateXmlWriterOutputWithEncodingName @6
